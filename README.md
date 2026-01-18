@@ -1,6 +1,6 @@
 # FastAPI Auth
 
-[![CI](https://github.com/YOUR_USERNAME/fastapi-auth/actions/workflows/publish.yml/badge.svg)](https://github.com/YOUR_USERNAME/fastapi-auth/actions/workflows/publish.yml)
+[![CI](https://github.com/Ohuru-Tech/fastapi-auth/actions/workflows/publish.yml/badge.svg)](https://github.com/Ohuru-Tech/fastapi-auth/actions/workflows/publish.yml)
 [![PyPI version](https://img.shields.io/pypi/v/fastapi-auth.svg)](https://pypi.org/project/fastapi-auth/)
 [![codecov](https://codecov.io/gh/Ohuru-Tech/fastapi-auth/graph/badge.svg?token=5RI47F0DO6)](https://codecov.io/gh/Ohuru-Tech/fastapi-auth)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)

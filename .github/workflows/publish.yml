@@ -56,7 +56,7 @@ jobs:
 
             - name: Run tests with coverage
               run: |
-                  uv run pytest --cov-branch --cov=fastapi_auth --cov-report=xml --cov-report=term --cov-report=json
+                  uv run pytest --cov-branch --cov=fastapi_auth --cov-report=xml --cov-report=term --cov-report=json --cov-fail-under=90
 
             - name: Upload coverage to Codecov
               uses: codecov/codecov-action@v5
@@ -73,8 +73,8 @@ jobs:
               uses: py-cov-action/python-coverage-comment-action@v3
               with:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                  MINIMUM_GREEN: 80
-                  MINIMUM_ORANGE: 60
+                  MINIMUM_GREEN: 90
+                  MINIMUM_ORANGE: 80
 
     build:
         name: Build distribution 📦
