@@ -51,7 +51,7 @@ class GithubSocialProvider:
                     "Authorization": f"Bearer {token}",
                     "X-GitHub-Api-Version": "2022-11-28",
                     "Accept": "application/json",
-                    "User-Agent": "app/fastapi-auth",
+                    "User-Agent": "app/oblox-fastapi-auth",
                 },
             )
             response.raise_for_status()

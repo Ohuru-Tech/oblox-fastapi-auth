@@ -35,7 +35,7 @@ if base_db_url:
         parts = base_db_url.rsplit("/", 1)
         default_test_db_url = f"{parts[0]}/fastapi_auth_test"
     else:
-        default_test_db_url = base_db_url.replace("fastapi-auth", "fastapi_auth_test")
+        default_test_db_url = base_db_url.replace("oblox-fastapi-auth", "oblox_fastapi_auth_test").replace("fastapi-auth", "oblox_fastapi_auth_test")
 else:
     default_test_db_url = os.getenv(
         "TEST_DATABASE_URL",
@@ -43,7 +43,7 @@ else:
             "AUTH_DATABASE_URL",
             "postgresql+asyncpg://postgres:hello1234@localhost:5432/fastapi_auth_test",
         )
-        .replace("/fastapi-auth", "/fastapi_auth_test")
+        .replace("/oblox-fastapi-auth", "/oblox_fastapi_auth_test").replace("/fastapi-auth", "/oblox_fastapi_auth_test")
         .replace("/fastapi_auth", "/fastapi_auth_test"),
     )
 

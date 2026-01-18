@@ -1,6 +1,6 @@
 # Sample FastAPI Application
 
-This is a sample FastAPI application demonstrating how to use the `fastapi-auth` package.
+This is a sample FastAPI application demonstrating how to use the `oblox-fastapi-auth` package.
 
 ## Features Demonstrated
 
@@ -20,7 +20,7 @@ This is a sample FastAPI application demonstrating how to use the `fastapi-auth`
 cd examples/sample_app
 
 # Install the package (if not already installed)
-uv add fastapi-auth
+uv add oblox-fastapi-auth
 
 # Or install from local source
 uv add ../..
@@ -62,21 +62,21 @@ alembic upgrade head
 
 ```bash
 # Create an admin user
-fastapi-auth-cli create-user admin@example.com --name "Admin User" --password "admin123" --is-staff
+oblox-fastapi-auth-cli create-user admin@example.com --name "Admin User" --password "admin123" --is-staff
 
 # Create a regular user
-fastapi-auth-cli create-user user@example.com --name "Regular User" --password "user123"
+oblox-fastapi-auth-cli create-user user@example.com --name "Regular User" --password "user123"
 
 # Create admin role
-fastapi-auth-cli create-role admin --description "Administrator role"
+oblox-fastapi-auth-cli create-role admin --description "Administrator role"
 
 # Create user role
-fastapi-auth-cli create-role user --description "Regular user role"
+oblox-fastapi-auth-cli create-role user --description "Regular user role"
 
 # Assign permissions to admin role
-fastapi-auth-cli create-permission-for-role admin users:read users read "Read users"
-fastapi-auth-cli create-permission-for-role admin users:create users create "Create users"
-fastapi-auth-cli create-permission-for-role admin users:write users write "Write users"
+oblox-fastapi-auth-cli create-permission-for-role admin users:read users read "Read users"
+oblox-fastapi-auth-cli create-permission-for-role admin users:create users create "Create users"
+oblox-fastapi-auth-cli create-permission-for-role admin users:write users write "Write users"
 ```
 
 ### 5. Run the Application

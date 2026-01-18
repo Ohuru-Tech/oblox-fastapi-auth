@@ -1,10 +1,10 @@
 # Frontend Integration Guide
 
-This guide explains how to integrate `fastapi-auth` with your frontend application.
+This guide explains how to integrate `oblox-fastapi-auth` with your frontend application.
 
 ## Overview
 
-The `fastapi-auth` package provides JWT-based authentication with access and refresh tokens. This guide covers integration patterns for React, Vue, and vanilla JavaScript applications.
+The `oblox-fastapi-auth` package provides JWT-based authentication with access and refresh tokens. This guide covers integration patterns for React, Vue, and vanilla JavaScript applications.
 
 ## Authentication Flow
 
@@ -446,7 +446,7 @@ export function useAuth() {
 ### 2. Add Provider to Backend
 
 ```bash
-fastapi-auth-cli add-social-provider github \
+oblox-fastapi-auth-cli add-social-provider github \
   --client-id YOUR_GITHUB_CLIENT_ID \
   --client-secret YOUR_GITHUB_CLIENT_SECRET
 ```

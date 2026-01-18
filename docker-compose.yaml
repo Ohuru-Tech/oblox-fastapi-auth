@@ -4,7 +4,7 @@ services:
     restart: always
     environment:
       POSTGRES_PASSWORD: hello1234
-      POSTGRES_DB: fastapi-auth
+      POSTGRES_DB: oblox-fastapi-auth
     ports:
       - 5432:5432
     volumes:

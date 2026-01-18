@@ -1,5 +1,5 @@
 """
-Sample FastAPI application using fastapi-auth package.
+Sample FastAPI application using oblox-fastapi-auth package.
 
 This example demonstrates:
 - Basic FastAPI app setup
@@ -39,7 +39,7 @@ async def lifespan(app: FastAPI):
 # Create FastAPI app
 app = FastAPI(
     title="Sample FastAPI Auth App",
-    description="A sample application demonstrating fastapi-auth integration",
+    description="A sample application demonstrating oblox-fastapi-auth integration",
     version="1.0.0",
     lifespan=lifespan,
 )

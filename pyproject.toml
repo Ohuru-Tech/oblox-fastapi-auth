@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "fastapi-auth"
+name = "oblox-fastapi-auth"
 version = "0.1.0"
 description = "A comprehensive authentication package for FastAPI applications with JWT, RBAC, and social auth support"
 readme = "README.md"
@@ -42,7 +42,7 @@ dependencies = [
 ]
 
 [project.scripts]
-fastapi-auth-cli = "fastapi_auth.cli:main"
+oblox-fastapi-auth-cli = "fastapi_auth.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["fastapi_auth"]

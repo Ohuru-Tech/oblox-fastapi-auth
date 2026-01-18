@@ -1,7 +1,7 @@
 # FastAPI Auth
 
 [![CI](https://github.com/Ohuru-Tech/fastapi-auth/actions/workflows/publish.yml/badge.svg)](https://github.com/Ohuru-Tech/fastapi-auth/actions/workflows/publish.yml)
-[![PyPI version](https://img.shields.io/pypi/v/fastapi-auth.svg)](https://pypi.org/project/fastapi-auth/)
+[![PyPI version](https://img.shields.io/pypi/v/oblox-fastapi-auth.svg)](https://pypi.org/project/oblox-fastapi-auth/)
 [![codecov](https://codecov.io/gh/Ohuru-Tech/fastapi-auth/graph/badge.svg?token=5RI47F0DO6)](https://codecov.io/gh/Ohuru-Tech/fastapi-auth)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -27,13 +27,13 @@ A comprehensive authentication package for FastAPI applications with JWT, RBAC, 
 Install the package using `uv`:
 
 ```bash
-uv add fastapi-auth
+uv add oblox-fastapi-auth
 ```
 
 Or using `pip`:
 
 ```bash
-pip install fastapi-auth
+pip install oblox-fastapi-auth
 ```
 
 ## Quick Start
@@ -42,7 +42,7 @@ pip install fastapi-auth
 
 ```bash
 # Install the package
-uv add fastapi-auth
+uv add oblox-fastapi-auth
 
 # Create environment file
 cat > .dev.env << EOF
@@ -108,16 +108,16 @@ alembic upgrade head
 
 ```bash
 # Create a user
-fastapi-auth-cli create-user user@example.com --name "John Doe" --password "securepassword"
+oblox-fastapi-auth-cli create-user user@example.com --name "John Doe" --password "securepassword"
 
 # Create a role
-fastapi-auth-cli create-role admin --description "Administrator role"
+oblox-fastapi-auth-cli create-role admin --description "Administrator role"
 
 # Assign permission to role
-fastapi-auth-cli create-permission-for-role admin users:read users read "Read users"
+oblox-fastapi-auth-cli create-permission-for-role admin users:read users read "Read users"
 
 # Add social provider
-fastapi-auth-cli add-social-provider github --client-id YOUR_CLIENT_ID --client-secret YOUR_CLIENT_SECRET
+oblox-fastapi-auth-cli add-social-provider github --client-id YOUR_CLIENT_ID --client-secret YOUR_CLIENT_SECRET
 ```
 
 ## Usage Examples
@@ -289,11 +289,11 @@ class YourModel(Base):
 
 ### Optional Variables
 
-- `AUTH_PROJECT_NAME` - Project name (defaults to "fastapi-auth")
+- `AUTH_PROJECT_NAME` - Project name (defaults to "oblox-fastapi-auth")
 - `AUTH_JWT_ALGORITHM` - JWT algorithm (defaults to "HS256")
 - `AUTH_JWT_ACCESS_TOKEN_EXPIRE_MINUTES` - Access token expiry (defaults to 30)
 - `AUTH_JWT_REFRESH_TOKEN_EXPIRE_MINUTES` - Refresh token expiry (defaults to 43200)
-- `AUTH_JWT_AUDIENCE` - JWT audience (defaults to "fastapi-auth")
+- `AUTH_JWT_AUDIENCE` - JWT audience (defaults to "oblox-fastapi-auth")
 - `AUTH_PASSWORDLESS_LOGIN_ENABLED` - Enable passwordless login (defaults to False)
 - `AUTH_EMAIL_VERIFICATION_REQUIRED` - Require email verification (defaults to False)
 
@@ -307,16 +307,16 @@ The package includes a CLI tool for managing users, roles, and permissions:
 
 ```bash
 # Create a user
-fastapi-auth-cli create-user <email> [--name NAME] [--password PASSWORD] [--is-staff]
+oblox-fastapi-auth-cli create-user <email> [--name NAME] [--password PASSWORD] [--is-staff]
 
 # Create a role
-fastapi-auth-cli create-role <name> [--description DESCRIPTION] [--is-active/--no-is-active]
+oblox-fastapi-auth-cli create-role <name> [--description DESCRIPTION] [--is-active/--no-is-active]
 
 # Create permission and assign to role
-fastapi-auth-cli create-permission-for-role <role_name> <permission_name> <resource> <action> [--description DESCRIPTION]
+oblox-fastapi-auth-cli create-permission-for-role <role_name> <permission_name> <resource> <action> [--description DESCRIPTION]
 
 # Add social provider
-fastapi-auth-cli add-social-provider <provider_type> [--client-id CLIENT_ID] [--client-secret CLIENT_SECRET]
+oblox-fastapi-auth-cli add-social-provider <provider_type> [--client-id CLIENT_ID] [--client-secret CLIENT_SECRET]
 ```
 
 ## Development

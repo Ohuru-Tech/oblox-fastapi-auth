@@ -18,14 +18,14 @@ class Settings(BaseSettings):
     # Basic Settings
     database_url: str
     timezone: TimeZoneName = "UTC"
-    project_name: str = "fastapi-auth"
+    project_name: str = "oblox-fastapi-auth"
 
     # JWT Settings
     jwt_secret_key: str = "sample-secret-key-dont-use-in-production"
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 30  # 30 minutes
     jwt_refresh_token_expire_minutes: int = 60 * 24 * 30  # 30 days
-    jwt_audience: str = "fastapi-auth"
+    jwt_audience: str = "oblox-fastapi-auth"
 
     # Encryption Settings
     encryption_key: str = Fernet.generate_key().decode()
