@@ -290,7 +290,11 @@ class TestCLIDirectAsyncFunctions:
         await test_session.commit()
         await test_session.refresh(social_provider)
 
-        assert social_provider.provider_type == SupportedProviders.GITHUB.value
+        # provider_type is stored as the enum value (string), but retrieved as enum
+        assert (
+            social_provider.provider_type == SupportedProviders.GITHUB.value
+            or social_provider.provider_type == SupportedProviders.GITHUB
+        )
         assert social_provider.client_id == client_id
 
     @pytest.mark.asyncio

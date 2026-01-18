@@ -66,12 +66,17 @@ class TestDatabaseModule:
 
         with patch("fastapi_auth.database.db.get_engine") as mock_get:
             mock_engine = Mock()
-            mock_engine.__call__ = Mock(return_value=mock_engine)
+            # Make the engine callable
+            mock_engine.return_value = mock_engine
             mock_get.return_value = mock_engine
 
+            # _EngineProxy.__call__ calls get_engine()(*args, **kwargs)
+            # So it calls the engine as a callable
             result = proxy()
+            # The result is the return value of calling the engine
             assert result == mock_engine
             mock_get.assert_called_once()
+            mock_engine.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_database_session_get_session_success(self, mock_settings):
@@ -82,10 +87,16 @@ class TestDatabaseModule:
 
             mock_session_maker = Mock()
             mock_session = Mock()
-            mock_context = Mock()
-            mock_context.__aenter__ = Mock(return_value=mock_session)
-            mock_context.__aexit__ = Mock(return_value=None)
-            mock_session_maker.return_value = mock_context
+
+            # Create a proper async context manager
+            class AsyncContextManager:
+                async def __aenter__(self):
+                    return mock_session
+
+                async def __aexit__(self, exc_type, exc_val, exc_tb):
+                    return None
+
+            mock_session_maker.return_value = AsyncContextManager()
 
             with patch(
                 "fastapi_auth.database.db.async_sessionmaker",
@@ -107,9 +118,16 @@ class TestDatabaseModule:
 
             mock_session_maker = Mock()
             test_error = ValueError("Database connection failed")
-            mock_context = Mock()
-            mock_context.__aenter__ = Mock(side_effect=test_error)
-            mock_session_maker.return_value = mock_context
+
+            # Create a proper async context manager that raises on enter
+            class AsyncContextManager:
+                async def __aenter__(self):
+                    raise test_error
+
+                async def __aexit__(self, exc_type, exc_val, exc_tb):
+                    return None
+
+            mock_session_maker.return_value = AsyncContextManager()
 
             with patch(
                 "fastapi_auth.database.db.async_sessionmaker",
