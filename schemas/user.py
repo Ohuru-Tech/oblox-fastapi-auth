@@ -22,3 +22,9 @@ class UserSocialLoginSchema(BaseModel):
     provider: str
     access_token: str | None
     code: str | None
+
+
+class UserSignupResponseSchema(BaseModel):
+    access_token: str | None
+    refresh_token: str | None
+    message: str

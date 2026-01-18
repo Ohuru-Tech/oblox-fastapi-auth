@@ -12,6 +12,8 @@ class SupportedProviders(enum.Enum):
 
 
 class SocialProvider(Base):
+    __tablename__ = "social_providers"
+
     provider_type: Mapped[str] = mapped_column(
         create_enum_column(SupportedProviders, name="social_provider_type"),
         nullable=False,

@@ -8,7 +8,7 @@ from repositories.social_provider_repository import (
 )
 from repositories.user_repository import UserRepository
 from schemas.social import GithubUserResponse
-from schemas.user import UserSignupSchema
+from schemas.user import UserJWTResponseSchema, UserSignupSchema
 from utils.decorators.validators import validate_args
 from utils.jwt import generate_jwt_token
 
@@ -48,7 +48,7 @@ class GithubSocialProvider:
                     "Authorization": f"Bearer {token}",
                     "X-GitHub-Api-Version": "2022-11-28",
                     "Accept": "application/json",
-                    "User-Agent": "app/oblogx-dx-deploy",
+                    "User-Agent": "app/fastapi-auth",
                 },
             )
             response.raise_for_status()
@@ -56,7 +56,7 @@ class GithubSocialProvider:
             return GithubUserResponse.model_validate(response_json)
 
     @validate_args({"code": {"required": {"message": "Code is required."}}})
-    async def login(self, code: str | None):
+    async def _perform_login(self, code: str) -> UserJWTResponseSchema:
         if not self.provider_settings:
             raise HTTPException(status_code=400, detail="Github is not configured.")
         token = await self.exchange_code_for_token(code=code)
@@ -70,6 +70,10 @@ class GithubSocialProvider:
         )
 
         return generate_jwt_token(user=user, settings=self.settings)
+
+    async def login(self, **kwargs):
+        code = kwargs.get("code", None)
+        return await self._perform_login(code)
 
 
 def get_github_social_provider(

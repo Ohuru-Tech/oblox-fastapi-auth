@@ -10,13 +10,14 @@ from utils.logging import get_logger
 
 logger = get_logger(__name__)
 
+engine = create_async_engine(Settings().auth_database_url, echo=False)
+
 
 class DatabaseSession:
     def __init__(self, config: Settings, fail_silently: bool = False):
         self.config = config
         self.fail_silently = fail_silently
-        self.engine = create_async_engine(config.auth_database_url, echo=False)
-        self.SessionLocal = async_sessionmaker(self.engine, expire_on_commit=False)
+        self.SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
     async def get_session(self):
         try:

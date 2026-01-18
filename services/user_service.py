@@ -1,12 +1,15 @@
-from fastapi import HTTPException
+from fastapi import Depends, HTTPException
 
-from repositories.user_repository import UserRepository
+from models.social_providers import SupportedProviders
+from repositories.user_repository import UserRepository, get_user_repository
 from schemas.user import (
     UserJWTResponseSchema,
     UserPasswordLoginSchema,
+    UserSignupResponseSchema,
     UserSignupSchema,
 )
-from settings import Settings
+from services.social import provider_maps
+from settings import Settings, get_settings
 from utils.jwt import generate_jwt_token
 from utils.password import verify_password
 
@@ -16,8 +19,9 @@ class UserService:
         self.repository = repository
         self.settings = settings
 
-    async def social_login(self):
-        pass
+    async def social_login(self, provider_type: SupportedProviders, **kwargs):
+        provider = provider_maps[provider_type]
+        return await provider.login(**kwargs)
 
     async def log_user_in(
         self, user_login: UserPasswordLoginSchema
@@ -46,12 +50,16 @@ class UserService:
         # Generate a jwt for the user and return
         return generate_jwt_token(user=user, settings=self.settings)
 
-    async def signup_user(self, user_signup: UserSignupSchema):
-        user = self.repository.get_user_by_email(email=user_signup.email)
-
-        # If passswordless is enabled just create the user
+    async def signup_user(
+        self, user_signup: UserSignupSchema
+    ) -> UserSignupResponseSchema:
+        # Passwordless flows should not be using signup route
         if self.settings.passwordless_login_enabled:
-            pass
+            raise HTTPException(
+                status_code=400, detail="Passwordless signup is not supported."
+            )
+
+        user = await self.repository.get_user_by_email(email=user_signup.email)
 
         # If a user exists, raise an exception
         if user:
@@ -59,10 +67,19 @@ class UserService:
 
         # If email verification is required, send a verification email
         if self.settings.email_verification_required:
-            pass
+            return UserSignupResponseSchema(
+                message="OTP sent to email for verification."
+            )
 
         # Create the user
         await self.repository.create_user(user=user_signup)
 
         # Generate a jwt for the user and return
         return generate_jwt_token(user=user, settings=self.settings)
+
+
+def get_user_service(
+    repository: UserRepository = Depends(get_user_repository),
+    settings: Settings = Depends(get_settings),
+) -> UserService:
+    return UserService(repository=repository, settings=settings)
