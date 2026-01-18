@@ -72,13 +72,13 @@ class Settings(BaseSettings):
 def configure_settings(**kwargs):
     """
     Configure settings with runtime overrides.
-    
+
     Updates the runtime overrides dictionary and clears the settings cache.
     Runtime overrides take precedence over environment variables.
-    
+
     Args:
         **kwargs: Settings to override (e.g., database_url="...", jwt_secret_key="...")
-    
+
     Example:
         configure_settings(
             database_url="postgresql+asyncpg://user:pass@localhost/db",

@@ -78,13 +78,14 @@ jobs:
 
             - name: Comment PR with coverage diff
               if: github.event_name == 'pull_request'
+              continue-on-error: true
               uses: py-cov-action/python-coverage-comment-action@v3
               with:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   MINIMUM_GREEN: 80
                   MINIMUM_ORANGE: 70
-                  COVERAGE_PATH: ".coverage"
                   VERBOSE: "true"
+                  ANNOTATE_MISSING_LINES: "false"
 
     lint:
         name: Lint code 🔍
@@ -108,9 +109,9 @@ jobs:
               run: |
                   uv run ruff check .
 
-            - name: Run ruff formatter check
+            - name: Check code formatting
               run: |
-                  uv run ruff format --check .
+                  uv run ruff format --check . || (echo "::error::Code formatting issues found. Run 'ruff format .' to fix them." && exit 1)
 
     build:
         name: Build distribution 📦
