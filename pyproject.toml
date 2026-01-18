@@ -1,27 +1,68 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "fastapi-auth"
 version = "0.1.0"
-description = "Add your description here"
+description = "A comprehensive authentication package for FastAPI applications with JWT, RBAC, and social auth support"
 readme = "README.md"
 requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "FastAPI Auth Contributors"}
+]
+keywords = ["fastapi", "authentication", "jwt", "rbac", "oauth", "social-auth"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Framework :: FastAPI",
+]
 dependencies = [
     "aiomysql>=0.3.2",
     "aiosmtplib>=5.0.0",
+    "aiosqlite>=0.20.0",
     "alembic>=1.17.2",
     "asyncpg>=0.31.0",
     "bcrypt>=5.0.0",
+    "click>=8.1.0",
     "cryptography>=43.0.0",
     "fastapi[standard]>=0.128.0",
     "httpx>=0.28.1",
     "pydantic-extra-types>=2.11.0",
     "pydantic-settings>=2.12.0",
     "pyjwt>=2.10.1",
+    "rich>=13.0.0",
     "sqlalchemy[asyncio]>=2.0.45",
     "structlog>=25.5.0",
 ]
+
+[project.scripts]
+fastapi-auth-cli = "fastapi_auth.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["fastapi_auth"]
 
 [dependency-groups]
 dev = [
     "isort>=7.0.0",
     "ruff>=0.14.10",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-mock>=3.14.0",
+    "faker>=24.0.0",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-v --tb=short"
+pythonpath = ["."]

@@ -34,6 +34,8 @@ class UserRole(Base):
     role_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("auth_roles.id"), primary_key=True
     )
+    # Override id to be part of composite primary key but still autoincrement
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
 
 class Permission(Base):
@@ -62,3 +64,5 @@ class RolePermission(Base):
     permission_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("auth_permissions.id"), primary_key=True
     )
+    # Override id to be part of composite primary key but still autoincrement
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)

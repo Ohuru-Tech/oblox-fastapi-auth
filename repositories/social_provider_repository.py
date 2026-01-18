@@ -13,7 +13,9 @@ class SocialProviderRepository:
     async def get_social_provider_by_type(
         self, type: SupportedProviders
     ) -> SocialProvider | None:
-        statement = select(SocialProvider).where(SocialProvider.type == type)
+        statement = select(SocialProvider).where(
+            SocialProvider.provider_type == type.value
+        )
         result = await self.database.execute(statement=statement)
         return result.scalar_one_or_none()
 

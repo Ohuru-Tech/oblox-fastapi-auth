@@ -89,3 +89,14 @@ Maintain code quality standards:
 - **Maintain consistency**: Follow existing project patterns and conventions
 - **Document decisions**: Add comments or documentation for non-obvious choices
 - **Review before completion**: Ensure all tests pass, linter is clean, and code follows project standards
+
+## Rule Adherence Documentation
+
+Always explain how you adhered to the rules and workflows defined in this document:
+
+- **Document rule application**: After completing a task, explicitly state which rules from this document were followed and how they were applied
+- **Explain decision-making**: When making choices during development, reference the relevant rules that guided those decisions
+- **Highlight compliance**: For each major phase (planning, execution, testing, formatting), briefly explain how the corresponding rules were followed
+- **Note any exceptions**: If any rules could not be followed or were modified, clearly explain why and what alternative approach was taken
+
+This documentation helps ensure transparency and consistency in following the established development workflow.

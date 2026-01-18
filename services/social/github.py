@@ -7,7 +7,6 @@ from repositories.social_provider_repository import (
     get_social_provider_repository,
 )
 from repositories.user_repository import UserRepository
-from schemas.social import GithubUserResponse
 from schemas.user import UserJWTResponseSchema, UserSignupSchema
 from utils.decorators.validators import validate_args
 from utils.jwt import generate_jwt_token
@@ -21,18 +20,22 @@ class GithubSocialProvider:
     ):
         self.repository = social_repository
         self.user_repository = user_repository
-        self.provider_settings = self.repository.get_social_provider_by_type(
+
+    async def _get_provider_settings(self):
+        """Get provider settings from database. Always fetches fresh data."""
+        return await self.repository.get_social_provider_by_type(
             type=SupportedProviders.GITHUB
         )
 
     async def exchange_code_for_token(self, code: str):
         # Make the request to the Github API to exchange the code for a token
+        provider_settings = await self._get_provider_settings()
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 "https://github.com/login/oauth/access_token",
                 data={
-                    "client_id": self.provider_settings.client_id,
-                    "client_secret": self.provider_settings.client_secret,
+                    "client_id": provider_settings.client_id,
+                    "client_secret": provider_settings.client_secret,
                     "code": code,
                 },
                 headers={"Accept": "application/json"},
@@ -53,11 +56,20 @@ class GithubSocialProvider:
             )
             response.raise_for_status()
             response_json = response.json()
-            return GithubUserResponse.model_validate(response_json)
+            # GithubUserResponse is a Union type, try both models
+            try:
+                from schemas.social import GithubPublicUser
+
+                return GithubPublicUser.model_validate(response_json)
+            except Exception:
+                from schemas.social import GithubPrivateUser
+
+                return GithubPrivateUser.model_validate(response_json)
 
     @validate_args({"code": {"required": {"message": "Code is required."}}})
     async def _perform_login(self, code: str) -> UserJWTResponseSchema:
-        if not self.provider_settings:
+        provider_settings = await self._get_provider_settings()
+        if not provider_settings:
             raise HTTPException(status_code=400, detail="Github is not configured.")
         token = await self.exchange_code_for_token(code=code)
         user_info = await self.get_user_info(token=token)
@@ -65,7 +77,7 @@ class GithubSocialProvider:
             user=UserSignupSchema(
                 email=user_info.email,
                 name=user_info.name,
-                profile_pic=user_info.avatar_url,
+                profile_pic=str(user_info.avatar_url) if user_info.avatar_url else None,
             )
         )
 

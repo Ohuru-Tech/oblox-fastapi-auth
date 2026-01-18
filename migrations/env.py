@@ -63,7 +63,7 @@ def run_migrations_offline() -> None:
 
     """
     settings = get_settings()
-    url = settings.auth_database_url
+    url = settings.database_url
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -94,7 +94,7 @@ async def run_async_migrations() -> None:
     """
 
     settings = get_settings()
-    connectable = create_async_engine(settings.auth_database_url)
+    connectable = create_async_engine(settings.database_url)
 
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)

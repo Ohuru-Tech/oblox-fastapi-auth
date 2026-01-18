@@ -15,7 +15,7 @@ def get_current_time():
 
 
 class Base(AsyncAttrs, DeclarativeBase):
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=get_current_time
     )

@@ -20,7 +20,15 @@ class UserService:
         self.settings = settings
 
     async def social_login(self, provider_type: SupportedProviders, **kwargs):
-        provider = provider_maps[provider_type]
+        from repositories.social_provider_repository import SocialProviderRepository
+
+        provider_class = provider_maps[provider_type]
+        # Instantiate the provider with required dependencies
+        social_repo = SocialProviderRepository(self.repository.database)
+        provider = provider_class(social_repo, self.repository)
+        # Set settings on provider - GithubSocialProvider needs this for JWT generation
+        if hasattr(provider, "settings"):
+            provider.settings = self.settings
         return await provider.login(**kwargs)
 
     async def log_user_in(
@@ -72,10 +80,10 @@ class UserService:
             )
 
         # Create the user
-        await self.repository.create_user(user=user_signup)
+        created_user = await self.repository.create_user(user=user_signup)
 
         # Generate a jwt for the user and return
-        return generate_jwt_token(user=user, settings=self.settings)
+        return generate_jwt_token(user=created_user, settings=self.settings)
 
 
 def get_user_service(

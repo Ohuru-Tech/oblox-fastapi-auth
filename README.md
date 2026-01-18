@@ -1,53 +1,251 @@
 # FastAPI Auth
 
-Drop in API endpoints for handling various authentication securely in FastAPI
+A comprehensive authentication package for FastAPI applications with JWT, RBAC, and social authentication support.
 
 ## Features
 
-- User registration with email verification
-- Login / Logout
-- Password change
-- Extensible User Model
-- Social media authentication
+- ✅ User registration and authentication
+- ✅ JWT token management (access & refresh tokens)
+- ✅ Role-based access control (RBAC)
+- ✅ Social media authentication (GitHub, Google)
+- ✅ Password hashing and verification
+- ✅ Email verification support
+- ✅ Field-level encryption for sensitive data
+- ✅ Async/await support throughout
+- ✅ Multiple database backends (PostgreSQL, MySQL)
+- ✅ Multiple email backends (SMTP, Azure, Console)
+- ✅ CLI tools for user and role management
 
-## Tech details
+## Installation
 
-### Databases Supported
+Install the package using `uv`:
 
-The following databases are supported currently:
+```bash
+uv add fastapi-auth
+```
 
-- Postgres ( via asyncpg )
-- MySQL ( via aiomysql )
+Or using `pip`:
 
-The environment variable `AUTH_DATABASE_URL` dictates which database the package uses.
+```bash
+pip install fastapi-auth
+```
 
-Examples:
+## Quick Start
 
-- For postgres, use a connection string like: `postgresql+asyncpg://user:pass@hostname/dbname`
-- For mysql, use a connection string like: `mysql+aiomysql://user:pass@hostname/dbname?charset=utf8mb4`
+### 1. Install and Configure
 
-### Email Backends
+```bash
+# Install the package
+uv add fastapi-auth
 
-We currently support the following email backends:
+# Create environment file
+cat > .dev.env << EOF
+AUTH_DATABASE_URL=postgresql+asyncpg://user:password@localhost/dbname
+AUTH_TIMEZONE=UTC
+JWT_SECRET_KEY=your-secret-key-here
+ENCRYPTION_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+AUTH_EMAIL_BACKEND=console
+EOF
+```
 
-- SMTP Backend
-- Console Backend
-- Azure Communication Services
+### 2. Create Your FastAPI Application
 
-Note: PRs are welcome to add more email backends
+```python
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-#### Configuring Email Backends
+from fastapi_auth import auth_router, get_engine
+from fastapi_auth.utils.logging import get_logger
 
-- Chose the email backend using the environment variable `AUTH_EMAIL_BACKEND`, the values can be:
-  - `smtp` for SMTP Backend
-  - `console` for Console Backend
-  - `azure` for Azure Communication Services
+logger = get_logger(__name__)
 
-### Field-Level Encryption
 
-The package includes built-in field-level encryption for sensitive data using Fernet symmetric encryption. This ensures that sensitive values like OAuth client secrets are encrypted at rest in the database.
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan manager."""
+    try:
+        yield
+    finally:
+        await get_engine().dispose()
 
-#### Encryption Key Setup
+
+app = FastAPI(lifespan=lifespan, title="My FastAPI App")
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # Your frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include authentication routes
+app.include_router(auth_router)
+```
+
+### 3. Run Database Migrations
+
+```bash
+# Initialize Alembic (if not already done)
+alembic init migrations
+
+# Create initial migration
+alembic revision --autogenerate -m "Initial migration"
+
+# Apply migrations
+alembic upgrade head
+```
+
+### 4. Use the CLI Tools
+
+```bash
+# Create a user
+fastapi-auth-cli create-user user@example.com --name "John Doe" --password "securepassword"
+
+# Create a role
+fastapi-auth-cli create-role admin --description "Administrator role"
+
+# Assign permission to role
+fastapi-auth-cli create-permission-for-role admin users:read users read "Read users"
+
+# Add social provider
+fastapi-auth-cli add-social-provider github --client-id YOUR_CLIENT_ID --client-secret YOUR_CLIENT_SECRET
+```
+
+## Usage Examples
+
+### Basic Authentication
+
+```python
+from fastapi import FastAPI, Depends
+from fastapi_auth import auth_router, get_session
+from fastapi_auth.services.rbac import required_admin, required_role
+from fastapi_auth.models.user import User
+
+app = FastAPI()
+app.include_router(auth_router)
+
+
+@app.get("/protected")
+async def protected_route(current_user: User = Depends(required_admin)):
+    """Protected route that requires admin role."""
+    return {"message": f"Hello, {current_user.email}!"}
+
+
+@app.get("/user-profile")
+async def user_profile(current_user: User = Depends(required_role("user"))):
+    """Route that requires 'user' role."""
+    return {"email": current_user.email, "name": current_user.name}
+```
+
+### Using RBAC Permissions
+
+```python
+from fastapi import FastAPI, Depends
+from fastapi_auth import auth_router
+from fastapi_auth.services.rbac import required_permissions
+from fastapi_auth.models.user import User
+
+app = FastAPI()
+app.include_router(auth_router)
+
+
+@app.get("/users")
+async def list_users(
+    current_user: User = Depends(required_permissions(["users:read"]))
+):
+    """List users - requires 'users:read' permission."""
+    # Your logic here
+    return {"users": []}
+```
+
+### Programmatic Configuration
+
+```python
+from fastapi_auth import configure_settings, get_settings
+
+# Configure settings programmatically
+configure_settings(
+    database_url="postgresql+asyncpg://user:pass@localhost/db",
+    jwt_secret_key="your-secret-key",
+    encryption_key="your-encryption-key",
+    email_backend="console",
+)
+
+# Get settings
+settings = get_settings()
+```
+
+## API Endpoints
+
+### Authentication Endpoints
+
+- `POST /auth/signup` - User registration
+
+  ```json
+  {
+    "email": "user@example.com",
+    "name": "John Doe",
+    "password": "securepassword"
+  }
+  ```
+
+- `POST /auth/login` - User login (if implemented)
+- `POST /auth/social/{provider_type}/login` - Social authentication
+  - Supported providers: `github`, `google`
+
+  ```json
+  {
+    "code": "oauth_code_from_provider"
+  }
+  ```
+
+## Database Configuration
+
+### Supported Databases
+
+- **PostgreSQL** (via asyncpg): `postgresql+asyncpg://user:pass@hostname/dbname`
+- **MySQL** (via aiomysql): `mysql+aiomysql://user:pass@hostname/dbname?charset=utf8mb4`
+
+Set the connection string via `AUTH_DATABASE_URL` environment variable.
+
+## Email Backends
+
+### SMTP Backend
+
+```env
+AUTH_EMAIL_BACKEND=smtp
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+SMTP_FROM=noreply@example.com
+SMTP_USE_TLS=true
+SMTP_TIMEOUT=10
+```
+
+### Azure Communication Services
+
+```env
+AUTH_EMAIL_BACKEND=azure
+AZURE_EMAIL_SERVICE_NAME=your-service-name
+AZURE_EMAIL_SERVICE_ENDPOINT=https://your-endpoint.communication.azure.com
+AZURE_EMAIL_SERVICE_API_KEY=your-api-key
+```
+
+### Console Backend (Development)
+
+```env
+AUTH_EMAIL_BACKEND=console
+```
+
+## Field-Level Encryption
+
+The package includes built-in field-level encryption for sensitive data using Fernet symmetric encryption.
+
+### Setup
 
 1. Generate an encryption key:
 
@@ -55,80 +253,85 @@ The package includes built-in field-level encryption for sensitive data using Fe
    python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
    ```
 
-2. Add the key to your environment file (`.dev.env`, `.prod.env`, etc.):
+2. Add to environment:
 
    ```env
    ENCRYPTION_KEY=<generated_key>
    ```
 
-#### Using EncryptedString
-
-The `EncryptedString` TypeDecorator automatically encrypts values when writing to the database and decrypts them when reading. It's already used for `client_secret` in the `SocialProvider` model, but you can use it for any sensitive field:
+### Usage
 
 ```python
-from models.common import EncryptedString
+from fastapi_auth.models.common import EncryptedString
 from sqlalchemy.orm import Mapped, mapped_column
 
 class YourModel(Base):
     sensitive_field: Mapped[str] = mapped_column(EncryptedString, nullable=False)
 ```
 
-**Important Notes:**
+**Note:** Encryption/decryption happens automatically. The same encryption key must be used consistently across all environments.
 
-- Encryption/decryption happens automatically - no code changes needed in your application logic
-- The same encryption key must be used consistently across all environments
-- If you have existing plaintext values, you'll need a migration script to encrypt them
-- Store the encryption key securely (environment variables, secret management services)
+## Environment Variables
 
-### Settings Configuration
-
-The package uses a flexible settings system that supports both environment-based configuration and programmatic overrides.
-
-#### Environment-Based Configuration
-
-Settings are loaded from environment variables or `.env` files. The environment file is determined by the `ENVIRONMENT` variable (defaults to `dev`), which loads `.dev.env`, `.prod.env`, etc.
-
-**Required Environment Variables:**
+### Required Variables
 
 - `AUTH_DATABASE_URL` - Database connection string
 - `AUTH_TIMEZONE` - Timezone (defaults to "UTC")
 - `JWT_SECRET_KEY` - Secret key for JWT token signing
 - `ENCRYPTION_KEY` - Fernet encryption key for field-level encryption
-- `AUTH_EMAIL_BACKEND` - Email backend to use (`smtp`, `console`, or `azure`)
+- `AUTH_EMAIL_BACKEND` - Email backend (`smtp`, `console`, or `azure`)
 
-**Email Backend Specific Variables:**
+### Optional Variables
 
-- **SMTP**: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_USE_TLS`, `SMTP_TIMEOUT`
-- **Azure**: `AZURE_EMAIL_SERVICE_NAME`, `AZURE_EMAIL_SERVICE_ENDPOINT`, `AZURE_EMAIL_SERVICE_API_KEY`
+- `AUTH_PROJECT_NAME` - Project name (defaults to "fastapi-auth")
+- `AUTH_JWT_ALGORITHM` - JWT algorithm (defaults to "HS256")
+- `AUTH_JWT_ACCESS_TOKEN_EXPIRE_MINUTES` - Access token expiry (defaults to 30)
+- `AUTH_JWT_REFRESH_TOKEN_EXPIRE_MINUTES` - Refresh token expiry (defaults to 43200)
+- `AUTH_JWT_AUDIENCE` - JWT audience (defaults to "fastapi-auth")
+- `AUTH_PASSWORDLESS_LOGIN_ENABLED` - Enable passwordless login (defaults to False)
+- `AUTH_EMAIL_VERIFICATION_REQUIRED` - Require email verification (defaults to False)
 
-#### Programmatic Configuration Override
+## Frontend Integration
 
-For advanced use cases or testing, you can override settings programmatically using the `configure()` function:
+See [FRONTEND_INTEGRATION.md](FRONTEND_INTEGRATION.md) for detailed frontend integration guide.
 
-```python
-from settings import Settings, configure
+## CLI Commands
 
-# Create a custom settings object
-custom_settings = Settings(
-    auth_database_url="postgresql+asyncpg://user:pass@localhost/db",
-    jwt_secret_key="your-secret-key",
-    encryption_key="your-encryption-key",
-    # ... other settings
-)
+The package includes a CLI tool for managing users, roles, and permissions:
 
-# Configure the auth system to use these settings
-configure(custom_settings)
+```bash
+# Create a user
+fastapi-auth-cli create-user <email> [--name NAME] [--password PASSWORD] [--is-staff]
 
-# Now get_settings() will return your custom settings
-from settings import get_settings
-settings = get_settings()  # Returns custom_settings
+# Create a role
+fastapi-auth-cli create-role <name> [--description DESCRIPTION] [--is-active/--no-is-active]
+
+# Create permission and assign to role
+fastapi-auth-cli create-permission-for-role <role_name> <permission_name> <resource> <action> [--description DESCRIPTION]
+
+# Add social provider
+fastapi-auth-cli add-social-provider <provider_type> [--client-id CLIENT_ID] [--client-secret CLIENT_SECRET]
 ```
 
-**Use Cases for Programmatic Configuration:**
+## Development
 
-- Testing with different configurations
-- Multi-tenant applications with different settings per tenant
-- Dynamic configuration loading from external sources
-- Overriding defaults without environment variables
+### Running Tests
 
-**Important:** Once `configure()` is called, the global settings object takes precedence over environment variables. To revert to environment-based configuration, you would need to restart the application or clear the global state.
+```bash
+uv run pytest
+```
+
+### Code Formatting
+
+```bash
+uv run ruff check .
+uv run ruff format .
+```
+
+## License
+
+MIT
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.

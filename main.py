@@ -3,9 +3,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from database.db import engine
-from routers.v1.auth_router import router as auth_router
-from utils.logging import get_logger
+from fastapi_auth.database.db import get_engine
+from fastapi_auth.routers.v1.auth_router import router as auth_router
+from fastapi_auth.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -15,7 +15,7 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
-        await engine.dispose()
+        await get_engine().dispose()
 
 
 app = FastAPI(lifespan=lifespan)

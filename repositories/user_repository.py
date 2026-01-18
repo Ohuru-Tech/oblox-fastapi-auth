@@ -12,16 +12,16 @@ class UserRepository:
         self.database = database
 
     async def create_user(self, user: UserSignupSchema):
-        async with self.database.begin():
-            self.database.add(
-                User(
-                    email=user.email,
-                    name=user.name,
-                    profile_pic=user.profile_pic,
-                    password=user.password,
-                )
-            )
-            return await self.get_user_by_email(email=user.email)
+        new_user = User(
+            email=user.email,
+            name=user.name,
+            profile_pic=user.profile_pic,
+            password=user.password,
+        )
+        self.database.add(new_user)
+        await self.database.commit()
+        await self.database.refresh(new_user)
+        return await self.get_user_by_email(email=user.email)
 
     async def get_user_by_email(self, email: str) -> User | None:
         statement = select(User).where(User.email == email)

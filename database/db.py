@@ -10,7 +10,7 @@ from utils.logging import get_logger
 
 logger = get_logger(__name__)
 
-engine = create_async_engine(Settings().auth_database_url, echo=False)
+engine = create_async_engine(Settings().database_url, echo=False)
 
 
 class DatabaseSession:

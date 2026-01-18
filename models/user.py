@@ -14,5 +14,7 @@ class User(Base):
     profile_pic: Mapped[str | None] = mapped_column(String(255), nullable=True)
     password: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-    roles: Mapped[list["Role"]] = relationship(back_populates="users")  # pyright: ignore[reportUndefinedVariable]  # noqa: F821
+    roles: Mapped[list["Role"]] = relationship(  # pyright: ignore[reportUndefinedVariable]  # noqa: F821
+        "Role", secondary="auth_user_roles", back_populates="users"
+    )
     is_staff: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
