@@ -63,12 +63,12 @@ configure_settings(
 )
 
 # Now import modules that depend on settings
-from fastapi_auth.database.db import get_session
-from fastapi_auth.models import Base, User
-from fastapi_auth.repositories.user_repository import UserRepository
+from fastapi_auth.database.db import get_session  # noqa: E402
+from fastapi_auth.models import Base, User  # noqa: E402
+from fastapi_auth.repositories.user_repository import UserRepository  # noqa: E402
 
 # Import app after settings are configured
-from main import app
+from main import app  # noqa: E402
 
 fake = Faker()
 
