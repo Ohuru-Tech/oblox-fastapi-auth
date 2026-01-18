@@ -55,7 +55,7 @@ configure_settings(
     jwt_access_token_expire_minutes=30,
     jwt_refresh_token_expire_minutes=60 * 24 * 30,
     jwt_audience="test-audience",
-    encryption_key="test-encryption-key-32-bytes-long!!",
+    encryption_key="O3A7yO3BY-tvzYqa1rpRPoz_7NTw9tE_garXQTW6KY0=",  # Base64 encoded 32-byte Fernet key
     email_backend="console",
     passwordless_login_enabled=False,
     email_verification_required=False,
@@ -63,12 +63,12 @@ configure_settings(
 )
 
 # Now import modules that depend on settings
-from fastapi_auth.database.db import get_session
-from fastapi_auth.models import Base, User
-from fastapi_auth.repositories.user_repository import UserRepository
+from fastapi_auth.database.db import get_session  # noqa: E402
+from fastapi_auth.models import Base, User  # noqa: E402
+from fastapi_auth.repositories.user_repository import UserRepository  # noqa: E402
 
 # Import app after settings are configured
-from main import app
+from main import app  # noqa: E402
 
 fake = Faker()
 
@@ -187,7 +187,7 @@ def test_settings():
         jwt_access_token_expire_minutes=30,
         jwt_refresh_token_expire_minutes=60 * 24 * 30,
         jwt_audience="test-audience",
-        encryption_key="test-encryption-key-32-bytes-long!!",
+        encryption_key="O3A7yO3BY-tvzYqa1rpRPoz_7NTw9tE_garXQTW6KY0=",  # Base64 encoded 32-byte Fernet key
         email_backend="console",
         passwordless_login_enabled=False,
         email_verification_required=False,
@@ -282,7 +282,7 @@ def mock_settings():
         jwt_access_token_expire_minutes=30,
         jwt_refresh_token_expire_minutes=60 * 24 * 30,
         jwt_audience="test-audience",
-        encryption_key="test-encryption-key-32-bytes-long!!",
+        encryption_key="O3A7yO3BY-tvzYqa1rpRPoz_7NTw9tE_garXQTW6KY0=",  # Base64 encoded 32-byte Fernet key
         email_backend="console",
         passwordless_login_enabled=False,
         email_verification_required=False,
