@@ -7,8 +7,18 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.types import TypeDecorator
 
-from models.base import Base
-from settings import get_settings
+# Import models module to ensure all model tables are registered in Base.metadata
+# In SQLAlchemy's declarative system, tables are registered only when their
+# defining classes are imported. Without this import, Base.metadata remains empty.
+import fastapi_auth.models  # noqa: F401  # ensure model tables are registered
+from fastapi_auth.models.base import Base
+
+# IMPORTANT: Configure settings programmatically BEFORE importing models
+# This ensures proper initialization of settings-dependent components
+from fastapi_auth.settings import get_settings
+
+# Import Base model for this package's metadata
+
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -20,10 +30,22 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
+# Configure metadata for Alembic autogenerate support
+#
+# For projects using this package, you should merge metadata from both
+# your application and fastapi_auth:
+#
+#   from fastapi_auth.models import get_metadata as get_auth_metadata
+#   from myapp.models import Base as MyAppBase
+#
+#   # Merge metadata - Alembic will track tables from both sources
+#   target_metadata = [MyAppBase.metadata, get_auth_metadata()]
+#
+# This ensures Alembic can detect changes in both your models and
+# fastapi_auth models. Always configure settings programmatically before
+# importing models (see configure_settings() call above).
+#
+# For this package's own migrations, we only use Base.metadata:
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,

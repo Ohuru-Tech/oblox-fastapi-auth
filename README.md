@@ -43,20 +43,41 @@ pip install oblox-fastapi-auth
 ```bash
 # Install the package
 uv add oblox-fastapi-auth
-
-# Create environment file
-cat > .dev.env << EOF
-AUTH_DATABASE_URL=postgresql+asyncpg://user:password@localhost/dbname
-AUTH_TIMEZONE=UTC
-JWT_SECRET_KEY=your-secret-key-here
-ENCRYPTION_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
-AUTH_EMAIL_BACKEND=console
-EOF
 ```
+
+**Important:** This package requires programmatic configuration. You must call `configure_settings()` before importing any modules that use settings.
+
+```python
+# Configure settings BEFORE any other imports
+from fastapi_auth import configure_settings
+
+# Configure settings programmatically (recommended)
+configure_settings(
+    database_url="postgresql+asyncpg://user:password@localhost/dbname",
+    jwt_secret_key="your-secret-key-here",
+    encryption_key="your-encryption-key-here",  # Generate with: Fernet.generate_key().decode()
+    email_backend="console",
+    timezone="UTC",
+)
+```
+
+> **Note:** While environment variables are supported as a fallback, programmatic configuration is strongly recommended for better control and explicit initialization. Environment variables use the `AUTH_` prefix (e.g., `AUTH_DATABASE_URL`).
 
 ### 2. Create Your FastAPI Application
 
 ```python
+# IMPORTANT: Configure settings BEFORE importing other fastapi_auth modules
+from fastapi_auth import configure_settings
+
+configure_settings(
+    database_url="postgresql+asyncpg://user:password@localhost/dbname",
+    jwt_secret_key="your-secret-key-here",
+    encryption_key="your-encryption-key-here",
+    email_backend="console",
+    timezone="UTC",
+)
+
+# Now import other modules
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -91,18 +112,64 @@ app.add_middleware(
 app.include_router(auth_router)
 ```
 
-### 3. Run Database Migrations
+### 3. Configure Database Migrations with Alembic
+
+When using this package in your application, you need to merge the package's metadata with your own application's metadata so Alembic can track both sets of tables.
+
+#### Step 1: Configure Settings in `migrations/env.py`
+
+**Important:** You must configure settings programmatically in your `migrations/env.py` file before importing any models.
+
+```python
+# migrations/env.py
+import asyncio
+from logging.config import fileConfig
+
+from alembic import context
+from sqlalchemy.engine import Connection
+from sqlalchemy.ext.asyncio import create_async_engine
+
+# Configure settings BEFORE importing models
+from fastapi_auth import configure_settings
+
+configure_settings(
+    database_url="postgresql+asyncpg://user:password@localhost/dbname",
+    jwt_secret_key="your-secret-key",
+    encryption_key="your-encryption-key",
+    email_backend="console",
+    timezone="UTC",
+)
+
+# Now import metadata from both your app and fastapi_auth
+from fastapi_auth.models import get_metadata as get_auth_metadata
+from myapp.models import Base as MyAppBase  # Your application's Base
+
+# Merge metadata for Alembic
+# Alembic will track tables from both your app and fastapi_auth
+target_metadata = [MyAppBase.metadata, get_auth_metadata()]
+
+# Rest of your Alembic configuration...
+config = context.config
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+# ... (rest of your env.py configuration)
+```
+
+#### Step 2: Create and Run Migrations
 
 ```bash
 # Initialize Alembic (if not already done)
 alembic init migrations
 
-# Create initial migration
+# Create initial migration (will include both your tables and fastapi_auth tables)
 alembic revision --autogenerate -m "Initial migration"
 
 # Apply migrations
 alembic upgrade head
 ```
+
+**Note:** The merged metadata ensures Alembic can detect changes in both your application's models and the fastapi_auth package's models. Always configure settings programmatically in your `migrations/env.py` to ensure proper initialization.
 
 ### 4. Use the CLI Tools
 
@@ -167,22 +234,33 @@ async def list_users(
     return {"users": []}
 ```
 
-### Programmatic Configuration
+### Programmatic Configuration (Recommended)
+
+**Programmatic configuration is the recommended approach** as it provides explicit control over initialization and ensures settings are configured before any modules that depend on them are imported.
 
 ```python
 from fastapi_auth import configure_settings, get_settings
 
-# Configure settings programmatically
+# Configure settings programmatically (call this BEFORE importing other fastapi_auth modules)
 configure_settings(
     database_url="postgresql+asyncpg://user:pass@localhost/db",
     jwt_secret_key="your-secret-key",
     encryption_key="your-encryption-key",
     email_backend="console",
+    timezone="UTC",
 )
 
 # Get settings
 settings = get_settings()
 ```
+
+**When to use programmatic configuration:**
+- Production applications (explicit and predictable)
+- Applications with multiple environments
+- Applications that need to configure settings dynamically
+- Testing environments (easier to override settings)
+
+**Environment variables** (with `AUTH_` prefix) can be used as a fallback, but programmatic configuration is preferred for better control and explicit initialization.
 
 ## API Endpoints
 
@@ -215,7 +293,105 @@ settings = get_settings()
 - **PostgreSQL** (via asyncpg): `postgresql+asyncpg://user:pass@hostname/dbname`
 - **MySQL** (via aiomysql): `mysql+aiomysql://user:pass@hostname/dbname?charset=utf8mb4`
 
-Set the connection string via `AUTH_DATABASE_URL` environment variable.
+Set the connection string via `configure_settings(database_url="...")` (recommended) or `AUTH_DATABASE_URL` environment variable.
+
+### Database Migrations with Alembic
+
+When using this package in your application, you must merge the package's metadata with your own application's metadata so Alembic can track both sets of tables.
+
+#### Complete Example: `migrations/env.py`
+
+```python
+import asyncio
+from logging.config import fileConfig
+
+from alembic import context
+from alembic.autogenerate.render import _repr_type
+from sqlalchemy.engine import Connection
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.types import TypeDecorator
+
+# IMPORTANT: Configure settings programmatically BEFORE importing models
+from fastapi_auth import configure_settings, get_settings
+
+configure_settings(
+    database_url="postgresql+asyncpg://user:password@localhost/dbname",
+    jwt_secret_key="your-secret-key",
+    encryption_key="your-encryption-key",
+    email_backend="console",
+    timezone="UTC",
+)
+
+# Now import metadata from both your app and fastapi_auth
+from fastapi_auth.models import get_metadata as get_auth_metadata
+from myapp.models import Base as MyAppBase  # Your application's Base
+
+# Merge metadata - Alembic will track tables from both sources
+target_metadata = [MyAppBase.metadata, get_auth_metadata()]
+
+# Alembic configuration
+config = context.config
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+
+def render_item_func(type_, object_, autogen_context):
+    """Custom render function for TypeDecorator instances."""
+    if type_ == "type" and isinstance(object_, TypeDecorator):
+        return _repr_type(object_.impl, autogen_context)
+    return False
+
+
+def run_migrations_offline() -> None:
+    """Run migrations in 'offline' mode."""
+    settings = get_settings()
+    url = settings.database_url
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+        render_item=render_item_func,
+    )
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+def do_run_migrations(connection: Connection) -> None:
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        render_item=render_item_func,
+    )
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+async def run_async_migrations() -> None:
+    """Run migrations in 'online' mode."""
+    settings = get_settings()
+    connectable = create_async_engine(settings.database_url)
+    async with connectable.connect() as connection:
+        await connection.run_sync(do_run_migrations)
+    await connectable.dispose()
+
+
+def run_migrations_online() -> None:
+    """Run migrations in 'online' mode."""
+    asyncio.run(run_async_migrations())
+
+
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()
+```
+
+**Key Points:**
+- Always call `configure_settings()` **before** importing any models
+- Merge metadata using a list: `target_metadata = [MyAppBase.metadata, get_auth_metadata()]`
+- This ensures Alembic tracks changes in both your models and fastapi_auth models
+- Programmatic configuration is required for proper initialization
 
 ## Email Backends
 

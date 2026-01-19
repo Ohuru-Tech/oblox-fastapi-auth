@@ -235,8 +235,8 @@ class TestAuthSocialLoginEndpoint:
                 mock_client_instance.get = AsyncMock(return_value=user_response)
 
                 # Mock social provider repository
-                from models.social_providers import SocialProvider
-                from repositories.social_provider_repository import (
+                from fastapi_auth.models.social_providers import SocialProvider
+                from fastapi_auth.repositories.social_provider_repository import (
                     get_social_provider_repository,
                 )
 
