@@ -12,6 +12,7 @@ from fastapi_auth.models.rbac import Permission, Role
 from fastapi_auth.models.user import User
 from fastapi_auth.services.rbac import (
     _get_user_from_jwt,
+    _get_user_from_request,
     _has_permissions,
     _has_role,
     _is_admin,
@@ -1072,3 +1073,292 @@ class TestCheckPermissionsFromRequest:
                             )
 
                         assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
+
+
+class TestSessionLogic:
+    """Test session management logic in check_* functions."""
+
+    @pytest.mark.asyncio
+    async def test_get_user_from_request_with_provided_session(self, mock_settings):
+        """Test _get_user_from_request uses provided session and doesn't create its own."""
+        user = User(id=1, email="test@example.com")
+
+        tz = ZoneInfo(mock_settings.timezone)
+        payload = {
+            "sub": user.email,
+            "exp": datetime.datetime.now(tz=tz) + timedelta(minutes=30),
+        }
+        token = jwt.encode(
+            payload, mock_settings.jwt_secret_key, algorithm=mock_settings.jwt_algorithm
+        )
+
+        request = MagicMock(spec=Request)
+        request.headers.get.return_value = f"Bearer {token}"
+
+        # Create a mock session that will be passed in
+        mock_session = AsyncMock()
+        mock_user_repo = AsyncMock()
+        mock_user_repo.get_user_by_email.return_value = user
+
+        with patch(
+            "fastapi_auth.services.rbac.get_settings", return_value=mock_settings
+        ):
+            # Mock UserRepository to verify it uses the provided session
+            with patch(
+                "fastapi_auth.services.rbac.UserRepository",
+                return_value=mock_user_repo,
+            ) as mock_user_repo_class:
+                # Mock DatabaseSession to verify it's NOT called
+                with patch(
+                    "fastapi_auth.services.rbac.DatabaseSession"
+                ) as mock_db_session:
+                    result = await _get_user_from_request(request, session=mock_session)
+
+                    # Verify user was retrieved
+                    assert result.email == user.email
+
+                    # Verify UserRepository was called with the provided session
+                    mock_user_repo_class.assert_called_once_with(database=mock_session)
+
+                    # Verify DatabaseSession was NOT called (no new session created)
+                    mock_db_session.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_get_user_from_request_creates_own_session(self, mock_settings):
+        """Test _get_user_from_request creates its own session when none is provided."""
+        user = User(id=1, email="test@example.com")
+
+        tz = ZoneInfo(mock_settings.timezone)
+        payload = {
+            "sub": user.email,
+            "exp": datetime.datetime.now(tz=tz) + timedelta(minutes=30),
+        }
+        token = jwt.encode(
+            payload, mock_settings.jwt_secret_key, algorithm=mock_settings.jwt_algorithm
+        )
+
+        request = MagicMock(spec=Request)
+        request.headers.get.return_value = f"Bearer {token}"
+
+        mock_session = AsyncMock()
+        mock_user_repo = AsyncMock()
+        mock_user_repo.get_user_by_email.return_value = user
+
+        # Create async context manager mock
+        async_context_manager = AsyncMock()
+        async_context_manager.__aenter__ = AsyncMock(return_value=mock_session)
+        async_context_manager.__aexit__ = AsyncMock(return_value=None)
+
+        with patch(
+            "fastapi_auth.services.rbac.get_settings", return_value=mock_settings
+        ):
+            with patch("fastapi_auth.services.rbac.DatabaseSession") as mock_db_session:
+                mock_db_session_instance = MagicMock()
+                mock_db_session_instance.SessionLocal = MagicMock(
+                    return_value=async_context_manager
+                )
+                mock_db_session.return_value = mock_db_session_instance
+
+                with patch(
+                    "fastapi_auth.services.rbac.UserRepository",
+                    return_value=mock_user_repo,
+                ):
+                    result = await _get_user_from_request(request)
+
+                    # Verify user was retrieved
+                    assert result.email == user.email
+
+                    # Verify DatabaseSession was called to create a new session
+                    mock_db_session.assert_called_once_with(mock_settings)
+                    mock_db_session_instance.SessionLocal.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_check_admin_from_request_uses_single_session(self, mock_settings):
+        """Test check_admin_from_request uses a single session for both user retrieval and RBAC check."""
+        user = User(id=1, email="admin@example.com")
+        admin_role = Role(id=1, name="admin")
+
+        tz = ZoneInfo(mock_settings.timezone)
+        payload = {
+            "sub": user.email,
+            "exp": datetime.datetime.now(tz=tz) + timedelta(minutes=30),
+        }
+        token = jwt.encode(
+            payload, mock_settings.jwt_secret_key, algorithm=mock_settings.jwt_algorithm
+        )
+
+        request = MagicMock(spec=Request)
+        request.headers.get.return_value = f"Bearer {token}"
+
+        mock_session = AsyncMock()
+        mock_user_repo = AsyncMock()
+        mock_user_repo.get_user_by_email.return_value = user
+
+        mock_rbac_repo = AsyncMock()
+        mock_rbac_repo.get_roles_by_user_id.return_value = [admin_role]
+
+        # Create async context manager mock
+        async_context_manager = AsyncMock()
+        async_context_manager.__aenter__ = AsyncMock(return_value=mock_session)
+        async_context_manager.__aexit__ = AsyncMock(return_value=None)
+
+        with patch(
+            "fastapi_auth.services.rbac.get_settings", return_value=mock_settings
+        ):
+            with patch("fastapi_auth.services.rbac.DatabaseSession") as mock_db_session:
+                mock_db_session_instance = MagicMock()
+                mock_db_session_instance.SessionLocal = MagicMock(
+                    return_value=async_context_manager
+                )
+                mock_db_session.return_value = mock_db_session_instance
+
+                with patch(
+                    "fastapi_auth.services.rbac.UserRepository",
+                    return_value=mock_user_repo,
+                ):
+                    with patch(
+                        "fastapi_auth.services.rbac.RBACRepository",
+                        return_value=mock_rbac_repo,
+                    ):
+                        result = await check_admin_from_request(request)
+
+                        # Verify user was retrieved
+                        assert result.email == user.email
+
+                        # Verify SessionLocal was called exactly once (single session)
+                        assert mock_db_session_instance.SessionLocal.call_count == 1
+
+                        # Verify RBACRepository was instantiated with the session
+                        # by checking that get_roles_by_user_id was called
+                        mock_rbac_repo.get_roles_by_user_id.assert_called_once_with(
+                            user.id
+                        )
+
+    @pytest.mark.asyncio
+    async def test_check_role_from_request_uses_single_session(self, mock_settings):
+        """Test check_role_from_request uses a single session for both user retrieval and RBAC check."""
+        user = User(id=1, email="editor@example.com")
+        editor_role = Role(id=1, name="editor")
+
+        tz = ZoneInfo(mock_settings.timezone)
+        payload = {
+            "sub": user.email,
+            "exp": datetime.datetime.now(tz=tz) + timedelta(minutes=30),
+        }
+        token = jwt.encode(
+            payload, mock_settings.jwt_secret_key, algorithm=mock_settings.jwt_algorithm
+        )
+
+        request = MagicMock(spec=Request)
+        request.headers.get.return_value = f"Bearer {token}"
+
+        mock_session = AsyncMock()
+        mock_user_repo = AsyncMock()
+        mock_user_repo.get_user_by_email.return_value = user
+
+        mock_rbac_repo = AsyncMock()
+        mock_rbac_repo.get_roles_by_user_id.return_value = [editor_role]
+
+        # Create async context manager mock
+        async_context_manager = AsyncMock()
+        async_context_manager.__aenter__ = AsyncMock(return_value=mock_session)
+        async_context_manager.__aexit__ = AsyncMock(return_value=None)
+
+        with patch(
+            "fastapi_auth.services.rbac.get_settings", return_value=mock_settings
+        ):
+            with patch("fastapi_auth.services.rbac.DatabaseSession") as mock_db_session:
+                mock_db_session_instance = MagicMock()
+                mock_db_session_instance.SessionLocal = MagicMock(
+                    return_value=async_context_manager
+                )
+                mock_db_session.return_value = mock_db_session_instance
+
+                with patch(
+                    "fastapi_auth.services.rbac.UserRepository",
+                    return_value=mock_user_repo,
+                ):
+                    with patch(
+                        "fastapi_auth.services.rbac.RBACRepository",
+                        return_value=mock_rbac_repo,
+                    ):
+                        result = await check_role_from_request(request, "editor")
+
+                        # Verify user was retrieved
+                        assert result.email == user.email
+
+                        # Verify SessionLocal was called exactly once (single session)
+                        assert mock_db_session_instance.SessionLocal.call_count == 1
+
+                        # Verify RBACRepository methods were called with the session
+                        # get_roles_by_user_id should be called twice (once for admin check, once for role check)
+                        assert mock_rbac_repo.get_roles_by_user_id.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_check_permissions_from_request_uses_single_session(
+        self, mock_settings
+    ):
+        """Test check_permissions_from_request uses a single session for both user retrieval and RBAC check."""
+        user = User(id=1, email="user@example.com")
+        permission = Permission(id=1, name="read:users")
+
+        tz = ZoneInfo(mock_settings.timezone)
+        payload = {
+            "sub": user.email,
+            "exp": datetime.datetime.now(tz=tz) + timedelta(minutes=30),
+        }
+        token = jwt.encode(
+            payload, mock_settings.jwt_secret_key, algorithm=mock_settings.jwt_algorithm
+        )
+
+        request = MagicMock(spec=Request)
+        request.headers.get.return_value = f"Bearer {token}"
+
+        mock_session = AsyncMock()
+        mock_user_repo = AsyncMock()
+        mock_user_repo.get_user_by_email.return_value = user
+
+        mock_rbac_repo = AsyncMock()
+        mock_rbac_repo.get_roles_by_user_id.return_value = []
+        mock_rbac_repo.get_permissions_by_user_id.return_value = [permission]
+
+        # Create async context manager mock
+        async_context_manager = AsyncMock()
+        async_context_manager.__aenter__ = AsyncMock(return_value=mock_session)
+        async_context_manager.__aexit__ = AsyncMock(return_value=None)
+
+        with patch(
+            "fastapi_auth.services.rbac.get_settings", return_value=mock_settings
+        ):
+            with patch("fastapi_auth.services.rbac.DatabaseSession") as mock_db_session:
+                mock_db_session_instance = MagicMock()
+                mock_db_session_instance.SessionLocal = MagicMock(
+                    return_value=async_context_manager
+                )
+                mock_db_session.return_value = mock_db_session_instance
+
+                with patch(
+                    "fastapi_auth.services.rbac.UserRepository",
+                    return_value=mock_user_repo,
+                ):
+                    with patch(
+                        "fastapi_auth.services.rbac.RBACRepository",
+                        return_value=mock_rbac_repo,
+                    ):
+                        result = await check_permissions_from_request(
+                            request, ["read:users"]
+                        )
+
+                        # Verify user was retrieved
+                        assert result.email == user.email
+
+                        # Verify SessionLocal was called exactly once (single session)
+                        assert mock_db_session_instance.SessionLocal.call_count == 1
+
+                        # Verify RBACRepository methods were called
+                        mock_rbac_repo.get_roles_by_user_id.assert_called_once_with(
+                            user.id
+                        )
+                        mock_rbac_repo.get_permissions_by_user_id.assert_called_once_with(
+                            user.id
+                        )
