@@ -7,8 +7,8 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.types import TypeDecorator
 
-from models.base import Base
-from settings import get_settings
+from fastapi_auth.models.base import Base
+from fastapi_auth.settings import get_settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
