@@ -312,7 +312,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.types import TypeDecorator
 
 # IMPORTANT: Configure settings programmatically BEFORE importing models
-from fastapi_auth import configure_settings
+from fastapi_auth import configure_settings, get_settings
 
 configure_settings(
     database_url="postgresql+asyncpg://user:password@localhost/dbname",
@@ -369,8 +369,6 @@ def do_run_migrations(connection: Connection) -> None:
 
 async def run_async_migrations() -> None:
     """Run migrations in 'online' mode."""
-    from fastapi_auth.settings import get_settings
-    
     settings = get_settings()
     connectable = create_async_engine(settings.database_url)
     async with connectable.connect() as connection:

@@ -7,12 +7,18 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.types import TypeDecorator
 
-# Import Base model for this package's metadata
+# Import models module to ensure all model tables are registered in Base.metadata
+# In SQLAlchemy's declarative system, tables are registered only when their
+# defining classes are imported. Without this import, Base.metadata remains empty.
+import fastapi_auth.models  # noqa: F401  # ensure model tables are registered
 from fastapi_auth.models.base import Base
 
 # IMPORTANT: Configure settings programmatically BEFORE importing models
 # This ensures proper initialization of settings-dependent components
 from fastapi_auth.settings import get_settings
+
+# Import Base model for this package's metadata
+
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
