@@ -77,23 +77,23 @@ def print_table(
         column_names: Optional list of column names. If not provided, uses keys from first row.
     """
     table = Table(title=title, show_header=True, header_style="bold magenta")
-    
+
     if not rows:
-        console.print(f"[yellow]No data to display[/yellow]")
+        console.print("[yellow]No data to display[/yellow]")
         return
-    
+
     # Determine column names
     if column_names is None:
         column_names = list(rows[0].keys())
-    
+
     # Add columns
     for col_name in column_names:
         table.add_column(col_name, style="cyan", no_wrap=False)
-    
+
     # Add rows
     for row in rows:
         table.add_row(*[str(row.get(col, "")) for col in column_names])
-    
+
     console.print(table)
 
 
@@ -115,7 +115,7 @@ def print_panel(
     title_text = title
     if title_style and title_text:
         title_text = f"[{title_style}]{title_text}[/{title_style}]"
-    
+
     panel = Panel(
         content,
         border_style=border_style,

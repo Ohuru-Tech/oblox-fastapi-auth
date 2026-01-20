@@ -46,7 +46,7 @@ def cli(ctx, database_url, jwt_secret_key, encryption_key, email_backend, timezo
         # Try to get settings to check if they're already configured
         # If not configured and database_url is required, we'll get an error when commands try to use it
         try:
-            settings = get_settings()
+            get_settings()
             # Settings are already configured, nothing to do
         except Exception:
             # Settings not configured, but we'll let commands handle the error

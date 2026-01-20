@@ -1,6 +1,6 @@
 """Tests for CLI utilities."""
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 from rich.panel import Panel
@@ -20,8 +20,7 @@ class TestCLIUtils:
 
     def test_print_success_uses_rich_panel(self, capsys):
         """Test print_success uses Rich Panel with green styling."""
-        from rich.panel import Panel
-        
+
         with patch("fastapi_auth.cli.utils.console") as mock_console:
             print_success("Test success message")
             # Verify console.print was called (Rich Panel is used internally)
@@ -37,8 +36,7 @@ class TestCLIUtils:
 
     def test_print_error_uses_rich_panel(self, capsys):
         """Test print_error uses Rich Panel with red styling."""
-        from rich.panel import Panel
-        
+
         with patch("fastapi_auth.cli.utils.console") as mock_console:
             print_error("Test error message")
             # Verify console.print was called
@@ -54,8 +52,7 @@ class TestCLIUtils:
 
     def test_print_info_uses_rich_panel(self, capsys):
         """Test print_info uses Rich Panel with blue styling."""
-        from rich.panel import Panel
-        
+
         with patch("fastapi_auth.cli.utils.console") as mock_console:
             print_info("Test info message")
             # Verify console.print was called
@@ -74,6 +71,7 @@ class TestCLIUtils:
         # Import should work if function exists
         try:
             from fastapi_auth.cli.utils import print_table
+
             assert callable(print_table)
         except ImportError:
             pytest.fail("print_table function does not exist")
@@ -83,6 +81,7 @@ class TestCLIUtils:
         # Import should work if function exists
         try:
             from fastapi_auth.cli.utils import print_panel
+
             assert callable(print_panel)
         except ImportError:
             pytest.fail("print_panel function does not exist")

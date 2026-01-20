@@ -4,7 +4,6 @@ from sqlalchemy import select
 from fastapi_auth.cli.utils import (
     get_db_session,
     print_error,
-    print_success,
     print_table,
     run_async,
 )

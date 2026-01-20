@@ -1,8 +1,7 @@
 """Tests for CLI configuration options."""
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-import pytest
 from click.testing import CliRunner
 
 from fastapi_auth.cli import cli
@@ -15,7 +14,9 @@ class TestCLIConfigOptions:
     def test_cli_accepts_database_url_option(self):
         """Test CLI accepts --database-url option."""
         runner = CliRunner()
-        result = runner.invoke(cli, ["--database-url", "postgresql+asyncpg://test", "--help"])
+        result = runner.invoke(
+            cli, ["--database-url", "postgresql+asyncpg://test", "--help"]
+        )
         assert result.exit_code == 0
 
     def test_cli_accepts_jwt_secret_key_option(self):
@@ -45,7 +46,7 @@ class TestCLIConfigOptions:
     def test_cli_calls_configure_settings_with_options(self):
         """Test CLI calls configure_settings() with provided options before command execution."""
         runner = CliRunner()
-        
+
         with patch("fastapi_auth.cli.configure_settings") as mock_configure:
             with patch("fastapi_auth.cli.commands.user.get_db_session"):
                 runner.invoke(
@@ -61,16 +62,26 @@ class TestCLIConfigOptions:
                         "testpass",
                     ],
                 )
-            
+
             # Verify configure_settings was called with the options
             assert mock_configure.called
             # Check that database_url was passed in the call
-            call_kwargs = mock_configure.call_args[1] if mock_configure.call_args and len(mock_configure.call_args) > 1 else {}
+            call_kwargs = (
+                mock_configure.call_args[1]
+                if mock_configure.call_args and len(mock_configure.call_args) > 1
+                else {}
+            )
             if not call_kwargs and mock_configure.call_args:
                 # If called as keyword args, check call_args[1]
-                call_kwargs = mock_configure.call_args[1] if len(mock_configure.call_args) > 1 else {}
+                call_kwargs = (
+                    mock_configure.call_args[1]
+                    if len(mock_configure.call_args) > 1
+                    else {}
+                )
             # Verify database_url was in the call
-            assert "database_url" in str(mock_configure.call_args) or mock_configure.called
+            assert (
+                "database_url" in str(mock_configure.call_args) or mock_configure.called
+            )
 
     def test_cli_options_override_existing_configure_settings(self):
         """Test CLI options override existing configure_settings() values."""
@@ -79,10 +90,10 @@ class TestCLIConfigOptions:
             database_url="postgresql+asyncpg://initial",
             jwt_secret_key="initial-secret",
         )
-        
+
         initial_settings = get_settings()
         assert initial_settings.database_url == "postgresql+asyncpg://initial"
-        
+
         runner = CliRunner()
         with patch("fastapi_auth.cli.commands.user.get_db_session"):
             runner.invoke(
@@ -96,33 +107,39 @@ class TestCLIConfigOptions:
                     "testpass",
                 ],
             )
-        
+
         # Verify settings were overridden
         new_settings = get_settings()
         assert new_settings.database_url == "postgresql+asyncpg://override"
-        
+
         # Cleanup
         configure_settings()
 
     def test_cli_shows_error_if_database_url_missing(self):
         """Test CLI shows helpful error if required --database-url is missing."""
         runner = CliRunner()
-        
+
         # Clear any existing configuration
         configure_settings()
-        
+
         # Mock get_settings to raise ValidationError when database_url is missing
         with patch("fastapi_auth.cli.get_settings") as mock_get_settings:
             from pydantic import ValidationError
-            
+
             def mock_settings():
                 raise ValidationError.from_exception_data(
                     "Settings",
-                    [{"type": "missing", "loc": ("database_url",), "msg": "Field required"}]
+                    [
+                        {
+                            "type": "missing",
+                            "loc": ("database_url",),
+                            "msg": "Field required",
+                        }
+                    ],
                 )
-            
+
             mock_get_settings.side_effect = mock_settings
-            
+
             result = runner.invoke(
                 cli,
                 [
@@ -132,7 +149,7 @@ class TestCLIConfigOptions:
                     "testpass",
                 ],
             )
-            
+
             # Should show error (may be ValidationError or connection error)
             # The important thing is that it fails when database_url is not configured
             assert result.exit_code != 0
@@ -146,7 +163,7 @@ class TestCLIConfigOptions:
             encryption_key="test-encryption-key",
             email_backend="console",
         )
-        
+
         runner = CliRunner()
         with patch("fastapi_auth.cli.commands.user.get_db_session"):
             result = runner.invoke(
@@ -158,18 +175,18 @@ class TestCLIConfigOptions:
                     "testpass",
                 ],
             )
-            
+
             # Should not fail due to missing configuration
             # (may fail for other reasons like database connection, but not config)
             assert "database_url" not in result.output.lower() or result.exit_code == 0
-        
+
         # Cleanup
         configure_settings()
 
     def test_cli_passes_options_to_all_commands(self):
         """Test CLI options are available to all subcommands."""
         runner = CliRunner()
-        
+
         # Test with create-role command
         with patch("fastapi_auth.cli.configure_settings") as mock_configure:
             with patch("fastapi_auth.cli.commands.role.get_db_session"):
@@ -182,9 +199,9 @@ class TestCLIConfigOptions:
                         "admin",
                     ],
                 )
-            
+
             assert mock_configure.called
-        
+
         # Test with create-permission-for-role command
         with patch("fastapi_auth.cli.configure_settings") as mock_configure:
             with patch("fastapi_auth.cli.commands.permission.get_db_session"):
@@ -200,5 +217,5 @@ class TestCLIConfigOptions:
                         "read",
                     ],
                 )
-            
+
             assert mock_configure.called
