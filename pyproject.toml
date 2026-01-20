@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "oblox-fastapi-auth"
-version = "0.1.3"
+version = "0.1.4"
 description = "A comprehensive authentication package for FastAPI applications with JWT, RBAC, and social auth support"
 readme = "README.md"
 requires-python = ">=3.11"
