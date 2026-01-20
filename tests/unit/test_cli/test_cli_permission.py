@@ -154,7 +154,7 @@ class TestCLIPermissionCommand:
     async def test_create_permission_output_uses_rich_formatting(self, test_session):
         """Test permission assignment output uses Rich Table/Panel."""
         from rich.table import Table
-        
+
         runner = CliRunner()
 
         # Create a role first
@@ -182,7 +182,7 @@ class TestCLIPermissionCommand:
                         "Read users",
                     ],
                 )
-                
+
                 # Verify console.print was called (Rich formatting is used)
                 assert mock_console.print.called
                 # Check that a Table object was passed
@@ -191,7 +191,11 @@ class TestCLIPermissionCommand:
                     if call_args and len(call_args) > 0:
                         obj = call_args[0]
                         if isinstance(obj, Table):
-                            assert obj.title and ("permission" in obj.title.lower() or "assigned" in obj.title.lower() or "created" in obj.title.lower())
+                            assert obj.title and (
+                                "permission" in obj.title.lower()
+                                or "assigned" in obj.title.lower()
+                                or "created" in obj.title.lower()
+                            )
                             return
                 # If no Table found, at least verify print was called
                 assert True
