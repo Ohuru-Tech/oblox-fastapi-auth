@@ -66,22 +66,11 @@ class TestCLIConfigOptions:
             # Verify configure_settings was called with the options
             assert mock_configure.called
             # Check that database_url was passed in the call
-            call_kwargs = (
-                mock_configure.call_args[1]
-                if mock_configure.call_args and len(mock_configure.call_args) > 1
-                else {}
-            )
-            if not call_kwargs and mock_configure.call_args:
-                # If called as keyword args, check call_args[1]
-                call_kwargs = (
-                    mock_configure.call_args[1]
-                    if len(mock_configure.call_args) > 1
-                    else {}
-                )
-            # Verify database_url was in the call
-            assert (
-                "database_url" in str(mock_configure.call_args) or mock_configure.called
-            )
+            assert mock_configure.call_args is not None
+            args, kwargs = mock_configure.call_args
+            expected_database_url = "postgresql+asyncpg://test"
+            # Verify database_url was passed either as a keyword argument or positional argument
+            assert "database_url" in kwargs or expected_database_url in args
 
     def test_cli_options_override_existing_configure_settings(self):
         """Test CLI options override existing configure_settings() values."""
@@ -219,3 +208,75 @@ class TestCLIConfigOptions:
                 )
 
             assert mock_configure.called
+
+    def test_cli_calls_configure_settings_with_encryption_key(self):
+        """Test CLI calls configure_settings() with --encryption-key option."""
+        runner = CliRunner()
+
+        with patch("fastapi_auth.cli.configure_settings") as mock_configure:
+            with patch("fastapi_auth.cli.commands.user.get_db_session"):
+                runner.invoke(
+                    cli,
+                    [
+                        "--encryption-key",
+                        "test-encryption-key",
+                        "create-user",
+                        "test@example.com",
+                        "--password",
+                        "testpass",
+                    ],
+                )
+
+            # Verify configure_settings was called with encryption_key
+            assert mock_configure.called
+            args, kwargs = mock_configure.call_args
+            assert "encryption_key" in kwargs
+            assert kwargs["encryption_key"] == "test-encryption-key"
+
+    def test_cli_calls_configure_settings_with_email_backend(self):
+        """Test CLI calls configure_settings() with --email-backend option."""
+        runner = CliRunner()
+
+        with patch("fastapi_auth.cli.configure_settings") as mock_configure:
+            with patch("fastapi_auth.cli.commands.user.get_db_session"):
+                runner.invoke(
+                    cli,
+                    [
+                        "--email-backend",
+                        "console",
+                        "create-user",
+                        "test@example.com",
+                        "--password",
+                        "testpass",
+                    ],
+                )
+
+            # Verify configure_settings was called with email_backend (lowercased)
+            assert mock_configure.called
+            args, kwargs = mock_configure.call_args
+            assert "email_backend" in kwargs
+            assert kwargs["email_backend"] == "console"
+
+    def test_cli_calls_configure_settings_with_timezone(self):
+        """Test CLI calls configure_settings() with --timezone option."""
+        runner = CliRunner()
+
+        with patch("fastapi_auth.cli.configure_settings") as mock_configure:
+            with patch("fastapi_auth.cli.commands.user.get_db_session"):
+                runner.invoke(
+                    cli,
+                    [
+                        "--timezone",
+                        "UTC",
+                        "create-user",
+                        "test@example.com",
+                        "--password",
+                        "testpass",
+                    ],
+                )
+
+            # Verify configure_settings was called with timezone
+            assert mock_configure.called
+            args, kwargs = mock_configure.call_args
+            assert "timezone" in kwargs
+            assert kwargs["timezone"] == "UTC"

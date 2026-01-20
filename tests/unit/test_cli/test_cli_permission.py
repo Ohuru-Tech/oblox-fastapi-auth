@@ -163,8 +163,19 @@ class TestCLIPermissionCommand:
         await test_session.commit()
         await test_session.refresh(role)
 
+        # Use the same pattern as the working test - patch get_db_session directly
+        # get_db_session is decorated with @asynccontextmanager, so we need to wrap our mock too
+        from contextlib import asynccontextmanager
+
+        @asynccontextmanager
         async def mock_get_db_session():
             yield test_session
+
+        # Apply nest_asyncio to allow nested event loops
+        # This allows asyncio.run() to work even when we're already in an event loop
+        import nest_asyncio
+
+        nest_asyncio.apply()
 
         with patch(
             "fastapi_auth.cli.commands.permission.get_db_session",
@@ -185,17 +196,30 @@ class TestCLIPermissionCommand:
 
                 # Verify console.print was called (Rich formatting is used)
                 assert mock_console.print.called
+
                 # Check that a Table object was passed
+                found_table = False
                 for call in mock_console.print.call_args_list:
                     call_args = call[0]
                     if call_args and len(call_args) > 0:
                         obj = call_args[0]
                         if isinstance(obj, Table):
-                            assert obj.title and (
-                                "permission" in obj.title.lower()
-                                or "assigned" in obj.title.lower()
-                                or "created" in obj.title.lower()
-                            )
-                            return
-                # If no Table found, at least verify print was called
-                assert True
+                            title = (obj.title or "").lower()
+                            if any(
+                                keyword in title
+                                for keyword in ("permission", "assigned", "created")
+                            ):
+                                found_table = True
+                                break
+                # If no Table found, raise assertion failure
+                if not found_table:
+                    call_types = [
+                        type(call[0][0]).__name__
+                        for call in mock_console.print.call_args_list
+                        if call[0] and len(call[0]) > 0
+                    ]
+                    assert False, (
+                        "Expected a Table with title containing 'permission'|'assigned'|'created' not found. "
+                        f"Found {len(mock_console.print.call_args_list)} calls to console.print "
+                        f"with types: {call_types}"
+                    )

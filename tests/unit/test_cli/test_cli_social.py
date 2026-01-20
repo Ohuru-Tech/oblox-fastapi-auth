@@ -147,13 +147,23 @@ class TestCLISocialCommand:
         self, test_session, test_settings
     ):
         """Test social provider output uses Rich Table/Panel."""
+        from contextlib import asynccontextmanager
+
+        import nest_asyncio
         from rich.panel import Panel
         from rich.table import Table
 
         runner = CliRunner()
 
+        # Use the same pattern as the working test - patch get_db_session directly
+        # get_db_session is decorated with @asynccontextmanager, so we need to wrap our mock too
+        @asynccontextmanager
         async def mock_get_db_session():
             yield test_session
+
+        # Apply nest_asyncio to allow nested event loops
+        # This allows asyncio.run() to work even when we're already in an event loop
+        nest_asyncio.apply()
 
         with patch(
             "fastapi_auth.cli.commands.social.get_db_session",
@@ -163,7 +173,7 @@ class TestCLISocialCommand:
                 result = runner.invoke(
                     add_social_provider,
                     [
-                        "google",
+                        "github",
                         "--client-id",
                         "test_client_id_rich",
                         "--client-secret",
@@ -171,25 +181,25 @@ class TestCLISocialCommand:
                     ],
                 )
 
-                # If console.print was called, verify it uses Rich formatting
-                if mock_console.print.called:
-                    # Check that either a Table (success) or Panel (error) object was passed
-                    for call in mock_console.print.call_args_list:
-                        call_args = call[0]
-                        if call_args and len(call_args) > 0:
-                            obj = call_args[0]
-                            if isinstance(obj, Table):
-                                assert obj.title and (
-                                    "provider" in obj.title.lower()
-                                    or "added" in obj.title.lower()
-                                    or "created" in obj.title.lower()
-                                )
-                                return
-                            elif isinstance(obj, Panel):
-                                # Error panel is also Rich formatting
-                                assert True
-                                return
-                # If command fails before producing output, that's a different issue
-                # but we can't test Rich output in that case
-                # Just verify the command was attempted
-                assert result is not None
+                # Require that Rich output was actually produced
+                assert mock_console.print.called is True, (
+                    "Rich output should have been produced"
+                )
+                assert result.exit_code == 0, "Command should succeed"
+
+                # Verify it uses Rich formatting - check that either a Table (success) or Panel (error) object was passed
+                for call in mock_console.print.call_args_list:
+                    call_args = call[0]
+                    if call_args and len(call_args) > 0:
+                        obj = call_args[0]
+                        if isinstance(obj, Table):
+                            assert obj.title and (
+                                "provider" in obj.title.lower()
+                                or "added" in obj.title.lower()
+                                or "created" in obj.title.lower()
+                            )
+                            return
+                        elif isinstance(obj, Panel):
+                            # Error panel is also Rich formatting
+                            assert True
+                            return

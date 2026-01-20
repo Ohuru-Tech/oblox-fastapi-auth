@@ -118,12 +118,22 @@ class TestCLIUserCommand:
     @pytest.mark.asyncio
     async def test_create_user_output_uses_rich_formatting(self, test_session):
         """Test user creation output uses Rich Table/Panel."""
+        from contextlib import asynccontextmanager
+
+        import nest_asyncio
         from rich.table import Table
 
         runner = CliRunner()
 
+        # Use the same pattern as the working test - patch get_db_session directly
+        # get_db_session is decorated with @asynccontextmanager, so we need to wrap our mock too
+        @asynccontextmanager
         async def mock_get_db_session():
             yield test_session
+
+        # Apply nest_asyncio to allow nested event loops
+        # This allows asyncio.run() to work even when we're already in an event loop
+        nest_asyncio.apply()
 
         with patch(
             "fastapi_auth.cli.commands.user.get_db_session",
@@ -149,14 +159,15 @@ class TestCLIUserCommand:
                     if call_args and len(call_args) > 0:
                         obj = call_args[0]
                         if isinstance(obj, Table):
-                            assert (
-                                obj.title
-                                and "user" in obj.title.lower()
+                            assert obj.title and (
+                                "user" in obj.title.lower()
                                 or "created" in obj.title.lower()
                             )
                             return
-                # If no Table found, at least verify print was called
-                assert True
+                # If no Table found, fail the test
+                assert False, (
+                    "Expected a Table object with title containing 'user' or 'created'"
+                )
 
     def test_create_user_error_uses_rich_panel(self, test_session, test_user):
         """Test error messages use Rich Panel formatting."""
@@ -193,8 +204,8 @@ class TestCLIUserCommand:
                         if isinstance(obj, Panel):
                             assert (
                                 obj.border_style == "red"
-                                or "error" in obj.title.lower()
+                                or "error" in (obj.title or "").lower()
                             )
                             return
-                # If no Panel found, at least verify print was called
-                assert True
+                # If no Panel found, fail the test
+                pytest.fail("No Panel with error styling rendered")
